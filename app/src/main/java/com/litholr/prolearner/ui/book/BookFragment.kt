@@ -19,6 +19,7 @@ import com.litholr.prolearner.ui.base.BaseFragment
 import com.litholr.prolearner.ui.main.MainViewModel
 import com.litholr.prolearner.utils.ChipInfo
 import com.litholr.prolearner.utils.CustomDatePicker
+import com.litholr.prolearner.utils.PLToast
 import kotlinx.coroutines.*
 import java.util.*
 import kotlin.collections.ArrayList
@@ -29,21 +30,15 @@ class BookFragment: BaseFragment<FragmentBookBinding>() {
 
     val mainViewModel: MainViewModel by activityViewModels()
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreateBegin(savedInstanceState: Bundle?) {
-
         mainViewModel.selectedBook.observe(this) { bookResult ->
             mainViewModel.getSavedBookInfoByISBN(bookResult.isbn).observe(this) { savedBookInfo ->
-                savedBookInfo.catalog?.let {
-                    initUI(it, false, )
-                }
-            }
-            GlobalScope.launch(Dispatchers.Default) {
-                if(mainViewModel.isBookExisted(bookResult.isbn)) {
-                    val savedBookInfo = mainViewModel.getSavedBookInfoByISBN(bookResult.isbn)
-                    val contentInfoList = mainViewModel.getContentInfoListByISBN(bookResult.isbn)
-                    savedBookInfo.catalog?.let {
-                        initUI(it, false, contentInfoList)
+                if(savedBookInfo != null) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val contentInfoList = mainViewModel.getContentInfoListByISBN(bookResult.isbn)
+                        savedBookInfo.catalog?.let {
+                            initUI(it, false, contentInfoList)
+                        }
                     }
                 } else {
                     mainViewModel.naver.getBookCatalog(bookResult) { bresult, catalog, call, res, t ->
@@ -57,7 +52,9 @@ class BookFragment: BaseFragment<FragmentBookBinding>() {
                                     startDate = null,
                                     endDate = null,
                                     catalog,
-                                    bookResult
+                                    bookResult,
+                                    0,
+                                    0
                                 )
                                 initUI(catalog)
                             }
@@ -88,7 +85,7 @@ class BookFragment: BaseFragment<FragmentBookBinding>() {
                 binding.datePicker.visibility = View.GONE
                 bookAdapter = BookContentAdapter(contentLists, isbnInAdapter = catalog.isbn)
             } else {
-                binding.datePicker.visibility = View.VISIBLE
+                binding.datePicker.visibility = View.GONE
                 bookAdapter = BookContentAdapter(contentLists, false, catalog.isbn, contentInfoList)
                 initDatePickers()
             }
@@ -178,14 +175,11 @@ class BookFragment: BaseFragment<FragmentBookBinding>() {
             } else {
                 holder.binding().check.visibility = View.VISIBLE
                 if(contentInfoList != null) {
-                    Log.d(this.javaClass.simpleName, "${position} : ${checkedList!!.get(position)}")
                     holder.binding().check.isSelected = checkedList!!.get(position)
                 }
                 holder.binding().check.setOnClickListener {
                     it.isSelected = !it.isSelected
-                    CoroutineScope(Dispatchers.Default).launch {
-                        mainViewModel.updateContentChecked(isbnInAdapter, position, it.isSelected)
-                    }
+                    mainViewModel.updateContentChecked(isbnInAdapter, position, it.isSelected)
                 }
             }
         }

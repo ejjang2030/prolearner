@@ -66,8 +66,10 @@ class MainActivity : BaseActivity<ActivityMainBinding, MainViewModel>() {
                     PLToast.makeToast(this, "책의 정보를 불러오지 못했습니다.")
                 MainViewModel.BookResultState.SEARCH_RESULT_NULL ->
                     PLToast.makeToast(this, "검색결과가 없습니다.")
-                MainViewModel.BookResultState.BOOK_CONTENTS_NULL ->
+                MainViewModel.BookResultState.BOOK_CONTENTS_NULL -> {
                     PLToast.makeToast(this, "목차정보가 없습니다.")
+                    viewModel.toBack()
+                }
                 else -> {}
             }
         }
@@ -88,6 +90,9 @@ class MainActivity : BaseActivity<ActivityMainBinding, MainViewModel>() {
         }
         binding.save.setOnClickListener {
             viewModel.saveBook(this)
+        }
+        binding.delete.setOnClickListener {
+            viewModel.deleteBook(this)
         }
     }
 }

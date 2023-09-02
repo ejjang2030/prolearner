@@ -116,6 +116,15 @@
                     android:layout_centerVertical="true"
                     android:background="#00000000"
                     android:id="@+id/save"/>
+                <androidx.appcompat.widget.AppCompatImageButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_delete"
+                    android:visibility="@{isSavedBookPage ? View.VISIBLE : View.GONE}"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:background="#00000000"
+                    android:id="@+id/delete"/>
             </RelativeLayout>
         </androidx.appcompat.widget.Toolbar>
         <androidx.fragment.app.FragmentContainerView

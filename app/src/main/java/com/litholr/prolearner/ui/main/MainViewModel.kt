@@ -1,6 +1,7 @@
 package com.litholr.prolearner.ui.main
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.*
 import com.litholr.prolearner.data.local.entity.SavedBookInfo
 import androidx.room.Room
@@ -21,6 +22,7 @@ import com.litholr.prolearner.utils.SecretId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.observeOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -97,13 +99,7 @@ class MainViewModel @Inject constructor(
                         return@searchBook
                     }
                     results.postValue(result.toString())
-                   // Log.d(this.javaClass.simpleName, "page : ${page.value}")
-                    //Log.d(this.javaClass.simpleName, "result : ${result.items.map { it.title }}")
                     result.let { bookSearchResult ->
-//                        Log.d(this.javaClass.simpleName, "$bookSearchResult")
-//                        val array = ArrayList<BookResult>()
-//                        books.value?.let { array.addAll(it) }
-//                        array.addAll(ArrayList(bookSearchResult.items))
                         books.postValue(ArrayList(bookSearchResult.items))
                     }
                 }
@@ -114,15 +110,19 @@ class MainViewModel @Inject constructor(
     fun saveBook(context: Context) {
         if(savedBookInfo != null) {
             CoroutineScope(Dispatchers.IO).launch {
-                insertSavedBookInfo(savedBookInfo!!)
-                savedBookInfo!!.catalog!!.getBookContentTableList()!!.asSequence().forEachIndexed { index, s ->
-                    val contentInfo = ContentInfo(
-                        isbn = savedBookInfo!!.isbn,
-                        contentSortNumber = index,
-                        contentTitle = s,
-                        isChecked = false
-                    )
-                    insertContentInfo(contentInfo)
+                savedBookInfo!!.catalog!!.getBookContentTableList()!!.let {
+                    it.asSequence().forEachIndexed { index, s ->
+                        val contentInfo = ContentInfo(
+                            isbn = savedBookInfo!!.isbn,
+                            contentSortNumber = index,
+                            contentTitle = s,
+                            isChecked = false
+                        )
+                        insertContentInfo(contentInfo)
+                    }
+                    savedBookInfo!!.countOfAllContents = it.size
+                    savedBookInfo!!.countOfContentsChecked = 0
+                    insertSavedBookInfo(savedBookInfo!!)
                 }
             }
             PLToast.makeToast(context, "책이 저장되었습니다.")
@@ -130,11 +130,14 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun updateCheckedContent(index: Int, isChecked: Boolean) {
-        val curr: Pair<String, Boolean>? = _checkedContents.value?.get(index)
-        val contentTitle = curr?.first ?: ""
-        val new: Pair<String, Boolean> = Pair(contentTitle, isChecked)
-        _checkedContents.value?.put(index, new)
+    fun deleteBook(context: Context) {
+        if(savedBookInfo != null) {
+            viewModelScope.launch { appDBRepository.deleteBook(savedBookInfo!!.isbn) }
+            PLToast.makeToast(context, "책이 삭제되었습니다.")
+            this._bottomNav.postValue(BottomNav.HOME)
+        } else {
+            PLToast.makeToast(context, "삭제할 책이 이미 존재하지 않습니다.")
+        }
     }
 
     fun setOnNavigationItemSelectedListener(bottomNavigationView: BottomNavigationView) {
@@ -148,10 +151,10 @@ class MainViewModel @Inject constructor(
                     _bottomNav.value = BottomNav.SEARCH
                     true
                 }
-                R.id.profile -> {
-                    _bottomNav.value = BottomNav.PROFILE
-                    true
-                }
+//                R.id.profile -> {
+//                    _bottomNav.value = BottomNav.PROFILE
+//                    true
+//                }
                 else -> false
             }
         }
@@ -203,14 +206,21 @@ class MainViewModel @Inject constructor(
     // for room db
     // SavedBookInfo
     fun getSavedBookInfoAll(): LiveData<List<SavedBookInfo>> = appDBRepository.getSavedBookInfoAll().asLiveData()
-    fun isBookExisted(isbn: String): LiveData<Boolean> = appDBRepository.isBookExisted(isbn).asLiveData()
+//    fun isBookExisted(isbn: String): LiveData<Boolean> = appDBRepository.isBookExisted(isbn).asLiveData()
     fun insertSavedBookInfo(savedBookInfo: SavedBookInfo) = viewModelScope.launch { appDBRepository.insertSavedBookInfo(savedBookInfo) }
     fun getSavedBookInfoByISBN(isbn: String): LiveData<SavedBookInfo> = appDBRepository.getSavedBookInfoByIsbn(isbn).asLiveData()
     fun updatestartDate(isbn: String, startDate: String) = viewModelScope.launch { appDBRepository.updateStartDate(isbn, startDate) }
     fun updateendDate(isbn: String, endDate: String) = viewModelScope.launch { appDBRepository.updateEndDate(isbn, endDate) }
 
-    // SavedBookInfo
+
+    // ContentInfo
     fun insertContentInfo(contentInfo: ContentInfo) = viewModelScope.launch { appDBRepository.insertContent(contentInfo) }
-    fun getContentInfoListByISBN(isbn: String): LiveData<List<ContentInfo>> = appDBRepository.getContentList(isbn).asLiveData()
-    fun updateContentChecked(isbn: String, sortNumber: Int, isChecked: Boolean) = viewModelScope.launch { appDBRepository.updateChecked(isbn, sortNumber, isChecked) }
+    suspend fun getContentInfoListByISBN(isbn: String): List<ContentInfo> = appDBRepository.getContentList(isbn)
+    fun updateContentChecked(isbn: String, sortNumber: Int, isChecked: Boolean) = viewModelScope.launch {
+        appDBRepository.updateChecked(isbn, sortNumber, isChecked)
+    }
+
+    fun getCountOfAllContentsByISBN(isbn: String): LiveData<Int> = appDBRepository.getCountOfAllContentsByISBN(isbn).asLiveData()
+    fun getCountOfContentsCheckedByISBN(isbn: String): LiveData<Int> = appDBRepository.getCountOfContentsCheckedByISBN(isbn).asLiveData()
+
 }

@@ -1,11 +1,14 @@
 package com.litholr.prolearner.data.local
 
+import android.util.Log
 import androidx.annotation.WorkerThread
 import com.litholr.prolearner.data.local.dao.ContentInfoDao
 import com.litholr.prolearner.data.local.dao.SavedBookInfoDao
 import com.litholr.prolearner.data.local.entity.ContentInfo
 import com.litholr.prolearner.data.local.entity.SavedBookInfo
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class AppDBRepository @Inject constructor(
@@ -15,40 +18,52 @@ class AppDBRepository @Inject constructor(
     // SavedBookInfoDao
     fun getSavedBookInfoAll(): Flow<List<SavedBookInfo>> = savedBookInfoDao.getSavedBookInfoAll()
 
-    @Suppress("RedundantSuspendModifier")
-    @WorkerThread
     suspend fun insertSavedBookInfo(savedBookInfo: SavedBookInfo) {
-        savedBookInfoDao.insertSavedBookInfo(savedBookInfo)
+        withContext(Dispatchers.IO) {
+            savedBookInfoDao.insertSavedBookInfo(savedBookInfo)
+        }
     }
 
-    fun isBookExisted(isbn: String): Flow<Boolean> = savedBookInfoDao.isBookExisted(isbn)
+//    fun isBookExisted(isbn: String): Flow<Boolean> = savedBookInfoDao.isBookExisted(isbn)
     fun getSavedBookInfoByIsbn(isbn: String): Flow<SavedBookInfo> = savedBookInfoDao.getSavedBookInfoByIsbn(isbn)
 
-    @Suppress("RedundantSuspendModifier")
-    @WorkerThread
     suspend fun updateStartDate(isbn: String, startDate: String) {
-        savedBookInfoDao.updateStartDate(isbn, startDate)
+        withContext(Dispatchers.IO) {
+            savedBookInfoDao.updateStartDate(isbn, startDate)
+        }
     }
 
-    @Suppress("RedundantSuspendModifier")
-    @WorkerThread
     suspend fun updateEndDate(isbn: String, endDate: String) {
-        savedBookInfoDao.updateEndDate(isbn, endDate)
+        withContext(Dispatchers.IO) {
+            savedBookInfoDao.updateEndDate(isbn, endDate)
+        }
     }
 
     // ContentInfoDao
-    @Suppress("RedundantSuspendModifier")
-    @WorkerThread
     suspend fun insertContent(contentInfo: ContentInfo) {
-        contentInfoDao.insertContent(contentInfo)
+        withContext(Dispatchers.IO) {
+            contentInfoDao.insertContent(contentInfo)
+        }
     }
 
-    fun getContentList(isbn: String): Flow<List<ContentInfo>> = contentInfoDao.getContentList(isbn)
+    suspend fun getContentList(isbn: String): List<ContentInfo> = withContext(Dispatchers.IO) {
+        contentInfoDao.getContentList(isbn)
+    }
 
-
-    @Suppress("RedundantSuspendModifier")
-    @WorkerThread
     suspend fun updateChecked(isbn: String, contentSortNumber: Int, isChecked: Boolean) {
-        contentInfoDao.updateChecked(isbn, contentSortNumber, isChecked)
+        withContext(Dispatchers.IO) {
+            contentInfoDao.updateChecked(isbn, contentSortNumber, isChecked)
+        }
+    }
+
+    fun getCountOfAllContentsByISBN(isbn: String): Flow<Int> = contentInfoDao.getCountOfAllContentsByISBN(isbn)
+    fun getCountOfContentsCheckedByISBN(isbn: String): Flow<Int> = contentInfoDao.getCountOfContentsCheckedByISBN(isbn)
+
+    suspend fun deleteBook(isbn: String) {
+        withContext(Dispatchers.IO) {
+            contentInfoDao.deleteContentsByISBN(isbn)
+            savedBookInfoDao.deleteSavedBookByISBN(isbn)
+        }
+
     }
 }

@@ -17,8 +17,8 @@ interface SavedBookInfoDao {
     @Insert
     fun insertSavedBookInfo(savedBookInfo: SavedBookInfo)
 
-    @Query("SELECT * FROM SavedBookInfo WHERE EXISTS (SELECT * FROM SavedBookInfo WHERE isbn = :isbn)")
-    fun isBookExisted(isbn: String): Flow<Boolean>
+//    @Query("SELECT * FROM  ÏÏSavedBookInfo WHERE EXISTS (SELECT * FROM SavedBookInfo WHERE isbn = :isbn)")
+//    fun isBookExisted(isbn: String): Flow<Boolean>
 
     @Query("SELECT * FROM SavedBookInfo WHERE isbn = :isbn")
     fun getSavedBookInfoByIsbn(isbn: String): Flow<SavedBookInfo>
@@ -28,4 +28,13 @@ interface SavedBookInfoDao {
 
     @Query("UPDATE SavedBookInfo SET end_date = :endDate WHERE (isbn = :isbn)")
     fun updateEndDate(isbn: String, endDate: String)
+
+    @Query("UPDATE SavedBookInfo SET count_of_all_contents = :countOfAllContents WHERE (isbn = :isbn)")
+    fun updateCountOfAllContents(isbn: String, countOfAllContents: Int)
+
+    @Query("UPDATE SavedBookInfo SET count_of_contents_checked = :countOfContentsChecked WHERE (isbn = :isbn)")
+    fun updateCountOfContentsChecked(isbn: String, countOfContentsChecked: Int)
+
+    @Query("DELETE FROM SavedBookInfo WHERE isbn = :isbn")
+    fun deleteSavedBookByISBN(isbn: String)
 }

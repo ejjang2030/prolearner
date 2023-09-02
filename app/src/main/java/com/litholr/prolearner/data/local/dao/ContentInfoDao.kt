@@ -14,11 +14,19 @@ interface ContentInfoDao {
     fun insertContent(contentInfo: ContentInfo)
 
     @Query("SELECT * FROM ContentInfo WHERE isbn = :isbn ORDER BY content_sort_number")
-    fun getContentList(isbn: String): Flow<List<ContentInfo>>
+    fun getContentList(isbn: String): List<ContentInfo>
 
     @Query("UPDATE ContentInfo SET isChecked = :isChecked WHERE (isbn = :isbn AND content_sort_number = :contentSortNumber)")
     fun updateChecked(isbn: String, contentSortNumber: Int, isChecked: Boolean)
 
+    @Query("SELECT COUNT(*) FROM ContentInfo WHERE isbn = :isbn")
+    fun getCountOfAllContentsByISBN(isbn: String): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM ContentInfo WHERE isbn = :isbn AND isChecked is True")
+    fun getCountOfContentsCheckedByISBN(isbn: String): Flow<Int>
+
+    @Query("DELETE FROM ContentInfo WHERE isbn = :isbn")
+    fun deleteContentsByISBN(isbn: String)
 //    @Query("UPDATE ContentInfo SET parent_content_id = :parentId AND content_sort_number = :orderNumber WHERE isbn = :isbn AND content_id = :contentId")
 //    fun modifyContentPosition(isbn: String, contentId: Int, parentId: Int, orderNumber: Int)
 //
