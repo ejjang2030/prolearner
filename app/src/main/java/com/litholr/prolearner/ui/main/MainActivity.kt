@@ -25,7 +25,6 @@ class MainActivity : BaseActivity<ActivityMainBinding, MainViewModel>() {
     lateinit var navController: NavController
 
     override fun onCreateBegin(savedInstanceState: Bundle?) {
-        viewModel.initDB(applicationContext)
         setNavigation()
         viewModel.setOnNavigationItemSelectedListener(binding.bottomNavigationBar)
         setListeners()

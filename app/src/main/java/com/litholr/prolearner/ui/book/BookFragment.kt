@@ -2,10 +2,7 @@ package com.litholr.prolearner.ui.book
 
 import android.app.Dialog
 import android.os.Bundle
-import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -13,16 +10,13 @@ import com.ejjang2030.bookcontentparser.api.naver.BookCatalog
 import com.litholr.prolearner.R
 import com.litholr.prolearner.data.local.entity.ContentInfo
 import com.litholr.prolearner.data.local.entity.SavedBookInfo
-import com.litholr.prolearner.databinding.BookContentItemBinding
 import com.litholr.prolearner.databinding.FragmentBookBinding
 import com.litholr.prolearner.ui.base.BaseFragment
 import com.litholr.prolearner.ui.main.MainViewModel
 import com.litholr.prolearner.utils.ChipInfo
 import com.litholr.prolearner.utils.CustomDatePicker
-import com.litholr.prolearner.utils.PLToast
 import kotlinx.coroutines.*
 import java.util.*
-import kotlin.collections.ArrayList
 
 class BookFragment: BaseFragment<FragmentBookBinding>() {
     override val layoutId: Int
@@ -65,7 +59,6 @@ class BookFragment: BaseFragment<FragmentBookBinding>() {
         }
     }
 
-
     private fun initUI(catalog: BookCatalog, isFirst: Boolean = true, contentInfoList: List<ContentInfo>? = null) {
         CoroutineScope(Dispatchers.Main).launch {
             val contentLists = catalog.getBookContentTableList()
@@ -86,7 +79,16 @@ class BookFragment: BaseFragment<FragmentBookBinding>() {
                 bookAdapter = BookContentAdapter(contentLists, isbnInAdapter = catalog.isbn)
             } else {
                 binding.datePicker.visibility = View.GONE
-                bookAdapter = BookContentAdapter(contentLists, false, catalog.isbn, contentInfoList)
+                val bookContentListener = object: BookContentListener {
+                    override fun updateContentChecked(
+                        isbn: String,
+                        position: Int,
+                        isSelected: Boolean
+                    ) {
+                        mainViewModel.updateContentChecked(isbn, position, isSelected)
+                    }
+                }
+                bookAdapter = BookContentAdapter(contentLists, false, catalog.isbn, contentInfoList, bookContentListener)
                 initDatePickers()
             }
             binding.bookContents.apply {
@@ -115,9 +117,7 @@ class BookFragment: BaseFragment<FragmentBookBinding>() {
                     weekDayShortName: String
                 ) {
                     binding.startDatePick.text = "$year.${monthNumber + 1}.$day"
-
                 }
-
             }).apply {
                 setDate(Calendar.getInstance())
                 showDialog()
@@ -141,58 +141,11 @@ class BookFragment: BaseFragment<FragmentBookBinding>() {
                     weekDayShortName: String
                 ) {
                     binding.endDatePick.text = "$year.${monthNumber + 1}.$day"
-                    CoroutineScope(Dispatchers.Default).launch {
-                        // mainViewModel.updateStartingDate(, "$year.${monthNumber + 1}.$day")
-                    }
                 }
-
             }).apply {
                 setDate(Calendar.getInstance())
                 showDialog()
             }
-        }
-    }
-
-    inner class BookContentAdapter(var array: List<String> = ArrayList(), val isFirst: Boolean = true, val isbnInAdapter: String, val contentInfoList: List<ContentInfo>? = null) : RecyclerView.Adapter<BookContentViewHolder>() {
-        val map = mutableMapOf<Int, Pair<String, Boolean>>()
-        var checkedList: List<Boolean>? = null
-
-        init {
-            if(contentInfoList != null) {
-                checkedList = contentInfoList.map { it.isChecked }.toList()
-            }
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BookContentViewHolder {
-            return BookContentViewHolder(BookContentItemBinding.inflate(LayoutInflater.from(parent.context), parent, false))
-        }
-
-        override fun onBindViewHolder(holder: BookContentViewHolder, position: Int) {
-            holder.bindItem(array[position])
-            map[position] = Pair(array[position], false)
-            if(isFirst) {
-                holder.binding().check.visibility = View.GONE
-            } else {
-                holder.binding().check.visibility = View.VISIBLE
-                if(contentInfoList != null) {
-                    holder.binding().check.isSelected = checkedList!!.get(position)
-                }
-                holder.binding().check.setOnClickListener {
-                    it.isSelected = !it.isSelected
-                    mainViewModel.updateContentChecked(isbnInAdapter, position, it.isSelected)
-                }
-            }
-        }
-
-        override fun getItemCount(): Int = array.size
-    }
-
-    inner class BookContentViewHolder(private val bookContentItemBinding: BookContentItemBinding): RecyclerView.ViewHolder(bookContentItemBinding.root) {
-        fun bindItem(title: String) {
-            bookContentItemBinding.contentTitle.text = title
-        }
-        fun binding(): BookContentItemBinding {
-            return bookContentItemBinding
         }
     }
 }

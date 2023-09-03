@@ -17,9 +17,6 @@ interface SavedBookInfoDao {
     @Insert
     fun insertSavedBookInfo(savedBookInfo: SavedBookInfo)
 
-//    @Query("SELECT * FROM  ÏÏSavedBookInfo WHERE EXISTS (SELECT * FROM SavedBookInfo WHERE isbn = :isbn)")
-//    fun isBookExisted(isbn: String): Flow<Boolean>
-
     @Query("SELECT * FROM SavedBookInfo WHERE isbn = :isbn")
     fun getSavedBookInfoByIsbn(isbn: String): Flow<SavedBookInfo>
 

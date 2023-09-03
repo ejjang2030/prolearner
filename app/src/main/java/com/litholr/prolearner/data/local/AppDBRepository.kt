@@ -24,7 +24,6 @@ class AppDBRepository @Inject constructor(
         }
     }
 
-//    fun isBookExisted(isbn: String): Flow<Boolean> = savedBookInfoDao.isBookExisted(isbn)
     fun getSavedBookInfoByIsbn(isbn: String): Flow<SavedBookInfo> = savedBookInfoDao.getSavedBookInfoByIsbn(isbn)
 
     suspend fun updateStartDate(isbn: String, startDate: String) {
@@ -64,6 +63,5 @@ class AppDBRepository @Inject constructor(
             contentInfoDao.deleteContentsByISBN(isbn)
             savedBookInfoDao.deleteSavedBookByISBN(isbn)
         }
-
     }
 }

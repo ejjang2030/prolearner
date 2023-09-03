@@ -14,7 +14,7 @@ import com.litholr.prolearner.data.local.typeconverter.BookCatalogConverter
 import com.litholr.prolearner.data.local.typeconverter.BookResultConverter
 import kotlinx.coroutines.CoroutineScope
 
-@Database(entities = [SavedBookInfo::class, ContentInfo::class], version = 9, exportSchema = true)
+@Database(entities = [SavedBookInfo::class, ContentInfo::class], version = 10, exportSchema = true)
 // 정식 배포 버전에서는 exportSchema를 false를 사용하여 배포하지 않는 것이 좋다
 @TypeConverters(value = [BookCatalogConverter::class, BookResultConverter::class])
 abstract class AppDatabase : RoomDatabase() {

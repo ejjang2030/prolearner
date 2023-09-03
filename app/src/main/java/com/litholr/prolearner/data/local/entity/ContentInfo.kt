@@ -9,7 +9,8 @@ data class ContentInfo(
     @ColumnInfo(name = "isbn") val isbn: String,
     @ColumnInfo(name = "content_sort_number") val contentSortNumber: Int,
     @ColumnInfo(name = "content_title") val contentTitle: String,
-    @ColumnInfo(name = "isChecked") val isChecked: Boolean
+    @ColumnInfo(name = "is_checked") val isChecked: Boolean,
+    @ColumnInfo(name = "parent_content") val parentContent: Int
 ) {
-    @PrimaryKey(autoGenerate = true) var contentId: Int = 0
+    @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "content_id") var contentId: Int = 0
 }

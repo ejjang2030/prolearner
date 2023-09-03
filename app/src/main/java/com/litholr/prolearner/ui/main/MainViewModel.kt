@@ -1,30 +1,21 @@
 package com.litholr.prolearner.ui.main
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.*
 import com.litholr.prolearner.data.local.entity.SavedBookInfo
-import androidx.room.Room
 import api.naver.BookResult
 import api.naver.NaverSearching
-import com.ejjang2030.bookcontentparser.api.naver.BookCatalog
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.gson.Gson
 import com.litholr.prolearner.R
 import com.litholr.prolearner.data.local.AppDBRepository
-import com.litholr.prolearner.data.local.AppDatabase
 import com.litholr.prolearner.data.local.entity.ContentInfo
-import com.litholr.prolearner.data.local.typeconverter.BookCatalogConverter
-import com.litholr.prolearner.data.local.typeconverter.BookResultConverter
 import com.litholr.prolearner.ui.base.BaseViewModel
 import com.litholr.prolearner.utils.PLToast
 import com.litholr.prolearner.utils.SecretId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.observeOn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.collections.ArrayList
 
@@ -32,8 +23,6 @@ import kotlin.collections.ArrayList
 class MainViewModel @Inject constructor(
     private val appDBRepository: AppDBRepository
 ) : BaseViewModel() {
-    var db: AppDatabase? = null
-
     var naver = NaverSearching(SecretId.NAVER_CLIENT_ID, SecretId.NAVER_CLIENT_ID_SECRET)
     private val searchResultItemCount = 10
 
@@ -49,20 +38,11 @@ class MainViewModel @Inject constructor(
     val books: MutableLiveData<ArrayList<BookResult>>
         get() = _books
 
-    private val _checkedContents = MutableLiveData<MutableMap<Int, Pair<String, Boolean>>>()
-    val checkedContents: LiveData<MutableMap<Int, Pair<String, Boolean>>>
-        get() = _checkedContents
-
     var results = MutableLiveData("")
 
     private val _selectedBook = MutableLiveData<BookResult>()
     val selectedBook: LiveData<BookResult>
         get() = _selectedBook
-
-    private val _selectedBookCatalog = MutableLiveData<BookCatalog>()
-    val selectedBookCatalog: MutableLiveData<BookCatalog>
-        get() = _selectedBookCatalog
-
 
     val _bookResultState = MutableLiveData(BookResultState.BEFORE_SEARCH)
     val bookResultState: LiveData<BookResultState>
@@ -78,16 +58,6 @@ class MainViewModel @Inject constructor(
     var _isSavedBookPage = MutableLiveData<Boolean>()
     val isSavedBookPage: LiveData<Boolean>
         get() = _isSavedBookPage
-
-    fun initDB(context: Context) {
-        val gson = Gson()
-        db = Room
-            .databaseBuilder(context, AppDatabase::class.java, "prolearner_app.db")
-            .addTypeConverter(BookCatalogConverter(gson))
-            .addTypeConverter(BookResultConverter(gson))
-            .fallbackToDestructiveMigration()
-            .build()
-    }
 
     fun searchBook() {
         naver.searchBook(query.value!!, 10, page.value!!, "sim") { call, response, t ->
@@ -116,7 +86,8 @@ class MainViewModel @Inject constructor(
                             isbn = savedBookInfo!!.isbn,
                             contentSortNumber = index,
                             contentTitle = s,
-                            isChecked = false
+                            isChecked = false,
+                            parentContent = 0
                         )
                         insertContentInfo(contentInfo)
                     }
@@ -206,21 +177,28 @@ class MainViewModel @Inject constructor(
     // for room db
     // SavedBookInfo
     fun getSavedBookInfoAll(): LiveData<List<SavedBookInfo>> = appDBRepository.getSavedBookInfoAll().asLiveData()
-//    fun isBookExisted(isbn: String): LiveData<Boolean> = appDBRepository.isBookExisted(isbn).asLiveData()
-    fun insertSavedBookInfo(savedBookInfo: SavedBookInfo) = viewModelScope.launch { appDBRepository.insertSavedBookInfo(savedBookInfo) }
-    fun getSavedBookInfoByISBN(isbn: String): LiveData<SavedBookInfo> = appDBRepository.getSavedBookInfoByIsbn(isbn).asLiveData()
-    fun updatestartDate(isbn: String, startDate: String) = viewModelScope.launch { appDBRepository.updateStartDate(isbn, startDate) }
-    fun updateendDate(isbn: String, endDate: String) = viewModelScope.launch { appDBRepository.updateEndDate(isbn, endDate) }
+    fun insertSavedBookInfo(savedBookInfo: SavedBookInfo) = viewModelScope.launch {
+        appDBRepository.insertSavedBookInfo(savedBookInfo) }
+    fun getSavedBookInfoByISBN(isbn: String): LiveData<SavedBookInfo> =
+        appDBRepository.getSavedBookInfoByIsbn(isbn).asLiveData()
+    fun updatestartDate(isbn: String, startDate: String) =
+        viewModelScope.launch { appDBRepository.updateStartDate(isbn, startDate) }
+    fun updateendDate(isbn: String, endDate: String) =
+        viewModelScope.launch { appDBRepository.updateEndDate(isbn, endDate) }
 
 
     // ContentInfo
-    fun insertContentInfo(contentInfo: ContentInfo) = viewModelScope.launch { appDBRepository.insertContent(contentInfo) }
-    suspend fun getContentInfoListByISBN(isbn: String): List<ContentInfo> = appDBRepository.getContentList(isbn)
+    fun insertContentInfo(contentInfo: ContentInfo) =
+        viewModelScope.launch { appDBRepository.insertContent(contentInfo) }
+    suspend fun getContentInfoListByISBN(isbn: String): List<ContentInfo> =
+        appDBRepository.getContentList(isbn)
     fun updateContentChecked(isbn: String, sortNumber: Int, isChecked: Boolean) = viewModelScope.launch {
         appDBRepository.updateChecked(isbn, sortNumber, isChecked)
     }
 
-    fun getCountOfAllContentsByISBN(isbn: String): LiveData<Int> = appDBRepository.getCountOfAllContentsByISBN(isbn).asLiveData()
-    fun getCountOfContentsCheckedByISBN(isbn: String): LiveData<Int> = appDBRepository.getCountOfContentsCheckedByISBN(isbn).asLiveData()
+    fun getCountOfAllContentsByISBN(isbn: String): LiveData<Int> =
+        appDBRepository.getCountOfAllContentsByISBN(isbn).asLiveData()
+    fun getCountOfContentsCheckedByISBN(isbn: String): LiveData<Int> =
+        appDBRepository.getCountOfContentsCheckedByISBN(isbn).asLiveData()
 
 }

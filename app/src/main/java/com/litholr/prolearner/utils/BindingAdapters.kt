@@ -10,7 +10,7 @@ object BindingAdapters {
     @BindingAdapter("imageUrl")
     fun imageUrl(view: ImageView?, url: String?) {
         if(view != null && url != null) {
-            Log.d(this.javaClass.simpleName, "imageUrl($url)")
+//            Log.d(this.javaClass.simpleName, "imageUrl($url)")
             Glide.with(view.context).load(url).into(view)
         }
     }

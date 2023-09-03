@@ -5,10 +5,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.*
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import api.naver.BookResult
@@ -42,8 +39,21 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 mainViewModel.updateBottomNavToBook(bookResult, isFirst)
             }
         }
+        val countObservers = object: CountObservers {
+            override fun getCountOfAllContentsByISBN(isbn: String): LiveData<Int> {
+                return mainViewModel.getCountOfAllContentsByISBN(isbn)
+            }
+
+            override fun getCountOfContentsCheckedByISBN(isbn: String): LiveData<Int> {
+                return mainViewModel.getCountOfContentsCheckedByISBN(isbn)
+            }
+        }
         binding.savedBookList.apply {
-            adapter = SavedBookAdapter(savedBookInfoClickListener)
+            adapter = SavedBookAdapter(
+                savedBookInfoClickListener,
+                this@HomeFragment,
+                countObservers
+                )
             layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
         }
     }
@@ -54,83 +64,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             adapter.updateSavedBookInfoList(savedBookInfoList)
             adapter.notifyDataSetChanged()
         }
-    }
-
-    inner class SavedBookAdapter(private val savedBookInfoClickListener: SavedBookInfoClickListener)
-        : RecyclerView.Adapter<SavedBookAdapter.SavedBookViewHolder>() {
-        private var savedBookInfoList: List<SavedBookInfo> = emptyList()
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) : SavedBookViewHolder {
-            return SavedBookViewHolder(
-                CardviewSavedbookinfoBinding.inflate(LayoutInflater.from(parent.context),
-                    parent,
-                    false))
-        }
-        override fun onBindViewHolder(holder: SavedBookViewHolder, position: Int) {
-            holder.bindItem(savedBookInfoList[position])
-        }
-        override fun getItemCount(): Int = savedBookInfoList.size
-
-        fun updateSavedBookInfoList(savedBookInfoList: List<SavedBookInfo>) {
-            this.savedBookInfoList = savedBookInfoList
-        }
-
-        inner class SavedBookViewHolder(private val savedBookViewBinding: CardviewSavedbookinfoBinding)
-            : RecyclerView.ViewHolder(savedBookViewBinding.root) {
-            fun updatePercentage(percent: Int) {
-                savedBookViewBinding.progress.apply {
-                    if(percent >= 100) {
-                        setProgressDrawableColor(resources.getColor(R.color.readCompletedColor))
-                    } else {
-                        setProgressDrawableColor(resources.getColor(R.color.readingColor))
-                    }
-                    setCornerRadius(10f)
-                    setProgressPercentage(percent.toDouble(), false)
-                }
-                savedBookViewBinding.percentage.text = "${percent}%"
-                savedBookViewBinding.percentage.apply {
-                    if(percent >= 100) {
-                        setTextColor(resources.getColor(R.color.readCompletedColor))
-                    } else {
-                        setTextColor(resources.getColor(R.color.readingColor))
-                    }
-                }
-            }
-
-            fun bindItem(item: SavedBookInfo) {
-                savedBookViewBinding.savedBookInfo = item
-                savedBookViewBinding.root.setOnClickListener {
-                    savedBookInfoClickListener.onItemClick(item.bookResult, false)
-                }
-
-                item.catalog?.let { // 프로그레스바를 위한 것
-                    val contentInfoObserver = ContentInfoObserver(item.isbn)
-                    contentInfoObserver.percent.observe(this@HomeFragment) {
-                        updatePercentage(it)
-                    }
-//                    CoroutineScope(Dispatchers.Main).launch {
-//                        Log.d("SavedBookAdapter", "${item.countOfContentsChecked!!}, ${item.countOfAllContents!!}")
-//                        val percent =
-//                            ((item.countOfContentsChecked!!.toDouble() / item.countOfAllContents!!.toDouble()) * 100).toInt()
-//                    }
-                }
-            }
-        }
-
-        inner class ContentInfoObserver(isbn: String) {
-            val countAllObserver = mainViewModel.getCountOfAllContentsByISBN(isbn)
-            val countCheckedObserver = mainViewModel.getCountOfContentsCheckedByISBN(isbn)
-            val percent: MediatorLiveData<Int> = MediatorLiveData()
-
-            private fun getPercent(cnt: Int, total: Int): Int = ((cnt.toDouble() / total.toDouble()) * 100).toInt()
-            init {
-                percent.addSource(countAllObserver, Observer { percent.postValue(getPercent(countCheckedObserver.value ?: 0, it))})
-                percent.addSource(countCheckedObserver, Observer { percent.postValue(getPercent(it, countAllObserver.value ?: 0))})
-            }
-        }
-    }
-
-    interface SavedBookInfoClickListener {
-        fun onItemClick(bookResult: BookResult, isFirst: Boolean = true)
     }
 }
 
